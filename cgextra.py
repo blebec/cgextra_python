@@ -67,8 +67,7 @@ def trials_to_dict(dat, conds, elecs, trials):
                     reformated_data[cond].append(reformated_data[cond, elec])                
                     
                     
-                #reformated_data[cond] = np.array(reformated_data[cond])
-            reformated_data[cond] = np.array(reformated_data[cond])
+                reformated_data[cond] = np.array(reformated_data[cond])
     return reformated_data        
 
 
