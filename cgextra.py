@@ -57,17 +57,10 @@ def trials_to_dict(dat, conds, elecs, trials):
                 for elec in elecs:
                     reformated_data[cond, elec] = []
                     for trial in trials:
-                        
-                        if ('Stim' + str(cond) +'Elec%dRepet%d' % (elec, trial) in dat):
-                            reformated_data[cond, elec].append(np.array(dat['Stim' + str(cond) + 'Elec%dRepet%d' % (elec,trial)]).flatten())                 
-                        #if ('PSTH_STIM_' + str(int(cond)) +'_ELEC_%d_TRIAL_%d' #    % (elec, trial) in dat):
-                            #(np.array(dat['PSTH_STIM_' + str(int(cond)) + '_ELEC_%d_TRIAL_%d' % (elec,trial)]).flatten()) 
-                                                                          
-                    reformated_data[cond, elec] = np.array(reformated_data[cond, elec])
-                    reformated_data[cond].append(reformated_data[cond, elec])                
-                    
-                    
-                reformated_data[cond] = np.array(reformated_data[cond])
+                        reformated_data[cond, elec].append(dat['Stim' + str(cond) +'Elec'+ str(elec) + 'Repet' + str(trial)])    
+                    reformated_data[cond, elec] = np.squeeze(reformated_data[cond, elec])
+                    reformated_data[cond].append(reformated_data[cond, elec])                                    
+                
     return reformated_data        
 
 
