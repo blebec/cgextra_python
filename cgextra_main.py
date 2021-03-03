@@ -93,7 +93,7 @@ ylims.append(ylims_val)
 
 if convert_mat:
     #data_dict = reformat.average_to_dict(input_dat, conditions,
-    #                                     elecs_input) 
+    #                                     elecs_input, stimkey, eleckey) 
     data_dict = reformat.trials_to_dict(input_dat, conditions, 
                                         elecs_input, trials,
                                         stimkey, eleckey, trialkey) 

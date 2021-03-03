@@ -1,60 +1,64 @@
-#%% set of metadata
-
-def get_keys(fn, fl):
+"""
+set of file specific variables metadata combination
+"""
+def get_keys(filen, flist):
     """
     load file specific keys
     """    
-    if (fn in fl[0]):
+    if (filen in flist[0]):
         key1 = 'PSTH_STIM'
         key2 = 'ELEC_'
         key3 = '_TRIAL_'
-    elif (fn in fl[1]) or (fn in fl[2]):
+    elif (filen in flist[1]) or (filen in flist[2]):
         key1 = 'PSTH'
         key2 = ''
         key3 = '_'
-    elif (fn in fl[3]) or (fn in fl[4]):
+    elif (filen in flist[3]) or (filen in flist[4]):
         key1 = 'Stim'
         key2 = 'Elec'
         key3 = 'Repet'
     return key1, key2, key3    
 
-def get_condid(fn, fl):
+def get_condid(filen, flist):
     """
     # load file specific condition idx
     """
-    if (fn in fl[0]) or (fn in fl[1]) or (fn in fl[2]) or (fn in fl[3]):
+    if (filen in flist[0]) or (filen in flist[1]) or \
+        (filen in flist[2]) or (filen in flist[3]):
         blk_target = 19
-    elif (fn in fl[4]):
+    elif (filen in flist[4]):
         blk_target = 16
     return blk_target
 
-def get_trials(fn, fl):
+def get_trials(filen, flist):
     """
     # load file specific trials number
     """
-    if (fn in fl[0]) or (fn in fl[1]) or (fn in fl[2]) or (fn in fl[3]):
+    if (filen in flist[0]) or (filen in flist[1]) or \
+        (filen in flist[2]) or (filen in flist[3]):
         trialsn = 30
-    elif (fn in fl[4]):
+    elif (filen in flist[4]):
         trialsn = 20
     return trialsn
 
-def get_yscale(fn, fl):
+def get_yscale(filen, flist):
     """
     # load file specific yscale
     """
-    if (fn in fl[0]) or (fn in fl[3]) or (fn in fl[4]): 
+    if (filen in flist[0]) or (filen in flist[3]) or (filen in flist[4]): 
         yscale = 0.3
-    elif (fn in fl[1]) or (fn in fl[2]):
+    elif (filen in flist[1]) or (filen in flist[2]):
         yscale = 60
     return yscale
 
-def get_layers(fn, fl):
+def get_layers(filen, flist):
     """
     # load file specific layers
     """
     lay_lim =()
-    if (fn in fl[0]) or (fn in fl[1]) or (fn in fl[2]) or (fn in fl[3]):
+    if (filen in flist[0]) or (filen in flist[1]) or \
+        (filen in flist[2]) or (filen in flist[3]):
         lay_lim = (24,45)
-    elif (fn in fl[4]):
+    elif (filen in flist[4]):
         lay_lim = (29,50)
     return lay_lim
