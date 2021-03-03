@@ -9,8 +9,11 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
-import pandas as pd
-#import humps
+#import pandas as pd
+
+import cgextra_meta as meta
+import cgextra_format as reformat
+
 
 def go_to_dir():
     """
@@ -31,120 +34,24 @@ go_to_dir()
 cwd = os.getcwd()
 print(cwd)
 
-#%% turn .mat to dict
-"""
-each key is of type: PSTH_STIM_n1_ELEC_n2_TRIAL_n3
-#stims of interest: 
-#1: ctr_ls, 2:son_ls, 3: stc_ls, 10 = ctr_hs, 11: son_hs; 12: stc_hs, 19: blk
-# n1 stim = 7 of interest, n2 electrode = 64, n3 trial = 30
-"""
-def trials_to_dict(dat, conds, elecs, trials):
-    """
-    returns a dictionary with keys corresponding to [conditions,electrodes]
-    At the level of [conditions], each element in an array of array where
-    each element is of of shape [nelec][ntrials][npoints]
-    At the level of [conditions][elec], each element is an array where 
-    each elecment is of shape [ntrials][npoints]
-    """
-    
-    for key in dat:
-        if (key not in ['__header__', '__version__', 
-                        '__globals__', 'DataFile']):
-            reformated_data = {}
-            
-            for cond in conds:
-                reformated_data[cond] = []
-                for elec in elecs:
-                    reformated_data[cond, elec] = []
-                    for trial in trials:
-                        reformated_data[cond, elec].append(dat['Stim' + str(cond) +'Elec'+ str(elec) + 'Repet' + str(trial)])    
-                    reformated_data[cond, elec] = np.squeeze(reformated_data[cond, elec])
-                    reformated_data[cond].append(reformated_data[cond, elec])                                    
-                
-    return reformated_data        
+#%% operating and save booleans
+save_dat = False
+save_fig = False
+convert_mat = False
+#%% const
+# trials for each electrode per stim 
+#vs no trials, only averages per electrodes per stim elem 1,2
+files_list = ['PSTHS_TRIALS_2010_TUN21',             
+              'PSTHS_2019_TUN21_with_top_synch',     
+              'PSTHS_2019_TUN21_without_top_synch',  
+              'psths_trials_2019_TUN_21_V2',         
+              '1319_CXLEFT_TUN25_s30psths_trials']   
 
-
-#each key is of type: PSTH_STIM_n1_ELEC_n2
-def average_to_dict(dat, conds, elecs):
-    """
-    returns a dictionary with keys corresponding to [conditions,electrodes]
-    At the level of [conditions], each element in an array where
-    each element is of of shape [nelec][npoints]
-    At the level of [conditions][elec], each element is a 1d array where 
-    each elecment is of shape [npoints]
-    """
-    
-    for key in dat:
-        if (key not in ['__header__', '__version__',
-                        '__globals__', 'DataFile']):
-            reformated_data = {}
-            
-            for cond in conds:
-                reformated_data[cond] = []
-                for elec in elecs:
-                    reformated_data[cond, elec] = []
-                    if ('PSTH_' + str(int(cond)) + '_%d' % (elec) in dat):
-                        reformated_data[cond, elec].append(np.array(dat['PSTH_' + str(int(cond))+ '_%d' % (elec)]).flatten()) 
-                          
-                    reformated_data[cond, elec] = np.array(reformated_data[cond, elec])
-                    reformated_data[cond].append(reformated_data[cond, elec])                
-            reformated_data = np.array(reformated_data)
-            reformated_data = np.squeeze(reformated_data)
-    return reformated_data        
- 
-#%% variables and filenames settings dt = 1/10E3
-
-# no trials, only averages per electrodes per stim
-#filename ='PSTHS_2019_TUN21_without_top_synch'
-##filename ='PSTHS_2019_TUN21_with_top_synch'
-filename ='psths_trials_2019_TUN_21_V2'
-
-# trials for each electrode per stim
-#filename ='PSTHS_TRIALS_2010_TUN21'
-
-input_dat = loadmat(filename+ '_list')
-
-conditions = [1, 2, 3, 10, 11, 12, 19]
 elecs_input = []
 for i in range(65):
     if (i!= 0):
         elecs_input.append(i)
 electrodes = [x - 1 for x in elecs_input]
-trials = []
-for j in range(31):
-    if j != 0:
-        trials.append(j)
-        
-#data = average_to_dict(input_dat, conditions, elecs_input) 
-#data = trials_to_dict(input_dat, conditions, elecs_input, trials)
-
-#%% import dict as pickle
-
-pickle_in = open(filename+"_list.pickle","rb")
-data = pickle.load(pickle_in)
-#%% export dict as pickle
-
-pickle_out = open(filename +"_list.pickle", "wb")
-pickle.dump(data, pickle_out)
-pickle_out.close()
-#%% files specifications 
-   
-files_list = ['PSTHS_TRIALS_2010_TUN21',
-              'PSTHS_2019_TUN21_with_top_synch',
-              'PSTHS_2019_TUN21_without_top_synch',
-              'psths_trials_2019_TUN_21_V2',
-              'psths_trials_2019_TUN_21_V2_list']
-
-ylims = [0.3, 60, 60, 0.3, 0.3]
-# layers
-# 2/3: 12 - 28, 4: 35 - 45, 5/6: 50 - 64 on github
-# 2/3: 24, 4: 45 on cloud 
-layers = [(24,45), (24,45), (24,45), (24,45), (24,45)]
-files_props = list(zip(files_list, ylims, layers))
-
-for n in range(len(files_props)):
-    if filename in files_props[n]:
-        file_idx = n
 
 cond_names = ['ctr_ls', 'son_ls',
               'stc_ls', 'ctr_hs', 
@@ -160,65 +67,72 @@ cond_labels = ['Center only low speed', 'Surround only low speed',
                'Surround only high speed', 'Surround-then-Center high speed',
                'Blank']
 
-#suppress n=1 sized dimension
+#%% get files specifications 
+filename ='1319_CXLEFT_TUN25_s30psths_trials'
+
+input_dat = loadmat(filename)
+stimkey, eleckey, trialkey = meta.get_keys(filename, files_list)
+
+blk_id = meta.get_condid(filename, files_list)
+conditions = [1, 2, 3, 10, 11, 12, blk_id]
+
+trialsn = meta.get_trials(filename, files_list)
+trials = []
+for j in range(trialsn + 1):
+    if j != 0:
+        trials.append(j)
+
+layers = []
+layer_lims = meta.get_layers(filename, files_list)
+layers.append(layer_lims)        
+
+ylims = []
+ylims_val =  meta.get_yscale(filename, files_list)
+ylims.append(ylims_val)
+#%% from .mat to dict
+
+if convert_mat:
+    #data_dict = reformat.average_to_dict(input_dat, conditions,
+    #                                     elecs_input) 
+    data_dict = reformat.trials_to_dict(input_dat, conditions, 
+                                        elecs_input, trials,
+                                        stimkey, eleckey, trialkey) 
+#suppress n-1 sized dimensions
 if (filename in files_list[1]) or (filename in files_list[2]):
     for cond in conditions:
-        data[cond] = np.squeeze(data[cond])
-#%% check original .mat keys/dimensions
-#print(input_dat.keys())
+        data_dict[cond] = np.squeeze(data_dict[cond])
 
-if filename in files_list[0]:
-    print(len(input_dat['PSTH_STIM_1_ELEC_1_TRIAL_1']))
-    print(len(input_dat['PSTH_STIM_12_ELEC_1_TRIAL_1']))
-elif (filename in files_list[1]): 
-    print(np.shape(input_dat['Top_Synchro_2']))
-    print(len(input_dat['Top_Synchro_2']))
-    print('     ')
-    print('     ')
-    print('     ')
-    print(input_dat['Top_Synchro_10'][0])
-    print(input_dat['Top_Synchro_10'][1])
-    print(np.shape(input_dat['Top_Synchro_10']))
-    print(len(input_dat['Top_Synchro_10']))
-elif (filename in files_list[3]) or (filename in files_list[4]): 
-    print(np.shape(input_dat['Stim19Elec51Repet30']))
+#load and save dict
+pickle_in = open(filename+".pickle","rb")
+data_dict = pickle.load(pickle_in)
+
+# export dict as pickle
+if save_dat:
+    pickle_out = open(filename +".pickle", "wb")
+    pickle.dump(data_dict, pickle_out)
+    pickle_out.close()
+
 #%% check reformated_dict keys/dimensions
-#print(data.keys())
+#print(input_dat.keys())
+#print(data_dict.keys())
 
-print(np.shape(data[1]))
-print(np.shape(data[2]))
-print(np.shape(data[12]))
+print( 'keys are of type:   ' + stimkey + '   ' + eleckey + '   ' + trialkey)
+print ('there are' + '   ' + str(trialsn) + '    ' + 'trials' )
+
+print('Each condition is of type (electrodes, trials, len(vector) in points)')
+print(np.shape(data_dict[1]))
 print(' ')
-print(np.shape(data[1][63]))
-print(np.shape(data[12][0]))
-print(' ')
+print(np.shape(data_dict[1][1]))
 # up to trial dimension
-if (filename in files_list[0]) or (filename in files_list[3]) or (
-        filename in files_list[4]):
-    print(np.shape(data[1][63][0]))
+if (filename in files_list[0]) or (filename in files_list[3]) or \
+    (filename in files_list[4]):
+        print(np.shape(data_dict[1][1][1]))
+
 #%% from dict to df
-
-meanL = []
-for i in conditions:
-    tmp_meanL = []
-    for j in electrodes:
-        if (filename in files_list[0]) or (filename in files_list[3]) or (filename in files_list[4]):
-            vec = np.mean(data[i][j], axis=0)
-        elif (filename in files_list[1]) or (filename in files_list[2]):
-            vec = data[i][j]
-        tmp_meanL.append(vec)
-    meanL.append(tmp_meanL)    
-df = pd.DataFrame(meanL)
-df = df.transpose()
-df.columns = cond_names
+df = reformat.dict_to_df(data_dict, conditions, cond_names, electrodes,
+                         filename, files_list)
 #%% from df to list of matrices
-
-matL = []
-for n in range(len(conditions)):
-    mat = df[cond_names[n]].tolist()
-    dim = np.size(mat,1)
-    mat = np.reshape(mat, (64, dim))                        
-    matL.append(mat)
+matlist, dim = reformat.df_to_matL(df, conditions, cond_names)
 #%%  
 """
 plot 64 electrodes, squeezed over the 30 trial dimension or not 
@@ -236,8 +150,8 @@ for j in electrodes:
     axes[j].plot(df[cond_names[0]][j], color=cond_colors[0], alpha=0.8,
                 label=cond_names[0])
    
-    #axes[63].set_xlim(dim/2, dim-1 - dim/4)
-    axes[63].set_xlim(0, 1200)
+    axes[63].set_xlim(dim/2, dim-1 - dim/6)
+    #axes[63].set_xlim(0, 1200)
     #axes[63].set_ylim(0,files_props[file_idx][1])
     
     for ax in fig.get_axes():
@@ -268,10 +182,11 @@ axes.flatten()
 for n in range(len(conditions)-1):
     if n <= 2:
                 
-        axes[0,n].matshow(matL[n], cmap='jet', vmin=0, vmax=
-                          files_props[file_idx][1], interpolation='gaussian')
-        #axes[0,n].set_xlim(dim/2, dim-1 - dim/4)    
-        axes[0,n].set_xlim(900, 1050)    
+        axes[0,n].matshow(matlist[n], cmap='jet', vmin=0,
+                          vmax=ylims[0], interpolation='gaussian')
+        
+        axes[0,n].set_xlim(dim/1.8, dim-1 - dim/4)    
+        #axes[0,n].set_xlim(775, 1000)    
         
         axes[0,n].tick_params(axis ='x', bottom =True, top=False, 
                               labelbottom=True, labeltop =False)
@@ -280,12 +195,12 @@ for n in range(len(conditions)-1):
         axes[0,0].set_ylabel(' Depth (electrode)')
         
         axes[0,n].set_title(cond_labels[n], color = cond_colors[n])
-        axes[0,n].axhline(files_props[file_idx][2][0], 0,1,color='white')
-        axes[0,n].axhline(files_props[file_idx][2][1], 0,1,color='white')
+        axes[0,n].axhline(layers[0][0], 0,1, color='white')
+        axes[0,n].axhline(layers[0][1], 0,1, color='white')
         
     elif n > 2:
-        axes[1,n-3].matshow(matL[n], cmap='jet', vmin=0, vmax=
-                          files_props[file_idx][1], interpolation='gaussian')
+        axes[1,n-3].matshow(matlist[n], cmap='jet', vmin=0,
+                            vmax= ylims[0], interpolation='gaussian')
         axes[1,n-3].tick_params(axis ='x', bottom=True, top=False,
                                 labelbottom=True, labeltop =False)
         axes[1,n-3].tick_params(axis ='y', left=True, right=False, 
@@ -293,10 +208,9 @@ for n in range(len(conditions)-1):
         axes[1,0].set_ylabel(' Depth (electrode)')
         
         axes[1,n-3].set_title(cond_labels[n], color = cond_colors[n])
-        axes[1,n-3].axhline(files_props[file_idx][2][0], 0,1,color='white')
-        axes[1,n-3].axhline(files_props[file_idx][2][1], 0,1,color='white')
+        axes[1,n-3].axhline(layers[0][0], 0,1,color='white')
+        axes[1,n-3].axhline(layers[0][1], 0,1,color='white')
         axes[1,n-3].set_xlabel(' Time (ms)')
         
-#fig.suptitle(filename + ' 1 ms subsampled', size = 16)                       
-#fig.suptitle(filename + ' 5 ms subsampled', size = 16)                        
+fig.suptitle(filename)# + ' 1 ms subsampled', size = 16)                       
 fig.tight_layout()
